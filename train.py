@@ -64,9 +64,10 @@ def run(rank, n_gpus, hps):
         writer = SummaryWriter(log_dir=hps.model_dir)
         writer_eval = SummaryWriter(log_dir=os.path.join(hps.model_dir, "eval"))
 
-    dist.init_process_group(
-        backend="nccl", init_method="env://", world_size=n_gpus, rank=rank
-    )
+    if os.name == 'nt':
+        dist.init_process_group(backend='gloo', init_method='env://', world_size=n_gpus, rank=rank)
+    else:
+        dist.init_process_group(backend='nccl', init_method='env://', world_size=n_gpus, rank=rank)
     torch.manual_seed(hps.train.seed)
     torch.cuda.set_device(rank)
 
@@ -181,7 +182,7 @@ def run(rank, n_gpus, hps):
                 3,
                 0.1,
                 gin_channels=hps.model.gin_channels if hps.data.n_speakers != 0 else 0,
-            ).cuda(rank) 
+            ).cuda(rank)
     else:
         print("NOT using any duration discriminator like VITS1")
         net_dur_disc = None
